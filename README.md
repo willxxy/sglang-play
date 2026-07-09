@@ -10,6 +10,40 @@ Playing with SGLANG on H100 NVL GPUs
 6. `uv pip install --force-reinstall sgl-deep-gemm --index-url https://docs.sglang.ai/whl/cu129/ --no-deps`
 
 
+## JIT host compiler fix (no sudo)
+
+The server crashes on the first request with
+`fatal error: version: No such file or directory` while ninja/nvcc build
+`sgl_kernel_jit_fused_rope_*`.
+
+**Root cause:** sglang >= 0.5 compiles some kernels (e.g. fused RoPE) at
+runtime with `-std=c++20` via tvm-ffi, which invokes `nvcc` without `-ccbin`.
+nvcc therefore uses the system `gcc` as host compiler — GCC 8.5 on this
+RHEL 8 machine — which supports neither C++20 (nvcc needs host GCC >= 10)
+nor the `<version>` header (libstdc++ >= GCC 9). The `Clang 21.1.4` printed
+by `check_environment.py` is only the compiler that built uv's CPython
+binary, not a compiler on this machine. No prebuilt wheel can bypass this:
+the RoPE kernel is JIT-only on CUDA (verified in sglang 0.5.10.post1 and
+0.5.14) and the tvm-ffi cache is populated only by compiling locally.
+
+**Fix** — install a user-space GCC 13 (conda-forge, what sglang tests
+against) and point the JIT at it via `CXX` and nvcc's `NVCC_PREPEND_FLAGS`:
+
+1. `bash scripts/setup_toolchain.sh` — one time; installs micromamba + GCC 13
+   into `./.toolchain` (~1.5 GB) and self-tests a C++20 `<version>` compile.
+2. `rm -rf ~/.cache/tvm-ffi` — one time; clears the failed build cache.
+3. `source scripts/toolchain_env.sh` — in every shell that runs sglang
+   (`scripts/demo_run.sh` now does this automatically). Sets `CC`, `CXX`,
+   `NVCC_PREPEND_FLAGS="-ccbin .../g++"` and `LD_LIBRARY_PATH` (the built
+   `.so` needs the matching newer `libstdc++.so.6` at runtime).
+4. `uv run python3 src/jit_smoke_test.py` — compiles the exact kernel that
+   crashed the server; once it prints OK, `bash scripts/demo_run.sh` works
+   and the result is cached in `~/.cache/tvm-ffi`.
+
+Also note: `src/offline_demo.py` additionally needed an
+`if __name__ == "__main__":` guard — sglang.Engine spawns subprocesses with
+the multiprocessing `spawn` method, which re-imports the main module.
+
 
 ### check_environment.py output
 
