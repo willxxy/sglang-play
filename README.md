@@ -51,6 +51,33 @@ Also note: `src/offline_demo.py` additionally needed an
 the multiprocessing `spawn` method, which re-imports the main module.
 
 
+## Corporate proxy vs localhost fix
+
+After the JIT fix the server booted, but exactly two minutes after
+"Uvicorn running" it logged
+`Initialization failed. warmup error: ... AssertionError: res=<Response [502]>`
+with a McAfee Web Gateway "Cannot Connect" page as the body, then died
+(`Killed`). `online_demo.py` then saw `Connection refused` — a downstream
+symptom, not the bug.
+
+**Root cause:** this machine routes HTTP through the corporate McAfee proxy
+via `http_proxy`/`https_proxy`, with no loopback exemption in `no_proxy`.
+On startup, sglang's warmup (`_execute_server_warmup` in
+`sglang/srt/entrypoints/http_server.py`) polls its own
+`http://127.0.0.1:30000/model_info` using plain `requests.get`, which honors
+those env vars — so the "local" poll is sent to the corporate proxy, which
+cannot connect back to *this* machine's 127.0.0.1 and returns 502. Warmup
+asserts `status_code == 200`, retries 120 times at 1 s intervals (the exact
+2-minute gap in the log), then calls `kill_process_tree` on itself. The
+GPU/JIT stack is fine — the RoPE kernel is already cached.
+
+**Fix:** exempt loopback from the proxy before starting the server.
+`scripts/demo_run.sh` now exports `no_proxy=localhost,127.0.0.1` (existing
+entries preserved), and `src/online_demo.py` uses a `requests.Session` with
+`trust_env = False` so the client works from any shell. Adding
+`localhost,127.0.0.1` to `no_proxy` in `~/.bashrc` fixes it machine-wide.
+
+
 ### check_environment.py output
 
 ```
