@@ -216,3 +216,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# user-space JIT toolchain (scripts/setup_toolchain.sh)
+.toolchain/
