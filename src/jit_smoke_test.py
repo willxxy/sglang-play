@@ -18,3 +18,9 @@ if __name__ == "__main__":
     # sgl_kernel_jit_fused_rope_true_64_true_bf16_t_*
     module = _jit_fused_rope_module(True, 64, torch.bfloat16)
     print("JIT fused RoPE kernel compiled and loaded OK:", module)
+
+    '''
+    Output
+    (sglang-play) bash-4.4$ uv run python3 src/jit_smoke_test.py 
+    JIT fused RoPE kernel compiled and loaded OK: ffi.Module(imports_=())
+    '''
