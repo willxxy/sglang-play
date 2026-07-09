@@ -4,11 +4,15 @@
 # Points SGLang's runtime JIT compilation (tvm-ffi + nvcc) at the user-space
 # GCC 13 installed by scripts/setup_toolchain.sh:
 #   - CXX/CC:              used by tvm-ffi for C++ compiles and linking
-#   - NVCC_PREPEND_FLAGS:  injects -ccbin so nvcc uses GCC 13 as host compiler
-#                          instead of the system GCC 8.5 (documented nvcc env
-#                          var, CUDA >= 11.5)
+#   - NVCC_CCBIN:          default host compiler for nvcc (CUDA >= 12.8 docs)
+#   - NVCC_PREPEND_FLAGS:  injects -ccbin (works since CUDA 11.5); existing
+#                          flags are preserved, and -ccbin is not added twice
+#                          because nvcc errors on a duplicated -ccbin
 #   - LD_LIBRARY_PATH:     the JIT-built .so needs the matching newer
 #                          libstdc++.so.6 at runtime
+#
+# Safe to re-source; only affects the current shell. Open a fresh shell (or
+# just don't source this) to get back to the stock environment.
 
 _sglang_env_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 _sglang_tc="${SGLANG_TOOLCHAIN_PREFIX:-$_sglang_env_dir/.toolchain}/gcc13"
@@ -27,8 +31,18 @@ if [ -z "$_sglang_cxx" ] || [ -z "$_sglang_cc" ]; then
 else
     export CXX="$_sglang_cxx"
     export CC="$_sglang_cc"
-    export NVCC_PREPEND_FLAGS="-ccbin $CXX"
-    export LD_LIBRARY_PATH="$_sglang_tc/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+    export NVCC_CCBIN="$CXX"
+
+    case " ${NVCC_PREPEND_FLAGS:-} " in
+        *" -ccbin "*) ;;  # a -ccbin is already there (re-source or user's own)
+        *) export NVCC_PREPEND_FLAGS="-ccbin $CXX${NVCC_PREPEND_FLAGS:+ $NVCC_PREPEND_FLAGS}" ;;
+    esac
+
+    case ":${LD_LIBRARY_PATH:-}:" in
+        *":$_sglang_tc/lib:"*) ;;  # already on the path
+        *) export LD_LIBRARY_PATH="$_sglang_tc/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" ;;
+    esac
+
     echo "SGLang JIT host compiler: $CXX"
 fi
 

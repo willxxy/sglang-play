@@ -10,6 +10,13 @@
 # Usage:
 #   bash scripts/setup_toolchain.sh          # one time
 #   source scripts/toolchain_env.sh          # in every shell that runs sglang
+#
+# Overrides:
+#   SGLANG_TOOLCHAIN_PREFIX  install location (default: <repo>/.toolchain)
+#   MICROMAMBA_VERSION       micromamba release tag to download
+#   MICROMAMBA_SHA256        expected sha256 of the micromamba binary; when
+#                            unset, the published .sha256 asset of the pinned
+#                            release is used
 
 set -euo pipefail
 
@@ -18,17 +25,35 @@ PREFIX="${SGLANG_TOOLCHAIN_PREFIX:-$REPO_DIR/.toolchain}"
 MAMBA="$PREFIX/micromamba"
 ENV_DIR="$PREFIX/gcc13"
 
+# Keep micromamba's package cache / root prefix inside the toolchain dir too,
+# so nothing lands in $HOME.
+export MAMBA_ROOT_PREFIX="$PREFIX/mamba-root"
+
+# Pinned micromamba release with checksum verification.
+# Tags: https://github.com/mamba-org/micromamba-releases/releases
+MM_VERSION="${MICROMAMBA_VERSION:-2.8.1-0}"
+MM_URL="https://github.com/mamba-org/micromamba-releases/releases/download/${MM_VERSION}/micromamba-linux-64"
+
 mkdir -p "$PREFIX"
 
 if [ ! -x "$MAMBA" ]; then
-    echo "==> Downloading micromamba (static binary, no install needed)..."
-    if ! curl -fsSL -o "$MAMBA" \
-        "https://github.com/mamba-org/micromamba-releases/releases/latest/download/micromamba-linux-64"; then
-        echo "==> GitHub download failed, trying micro.mamba.pm tarball..."
-        curl -fsSL "https://micro.mamba.pm/api/micromamba/linux-64/latest" \
-            | tar -xj -C "$PREFIX" --strip-components=1 bin/micromamba
+    echo "==> Downloading micromamba ${MM_VERSION} (static binary, no install needed)..."
+    if ! curl -fsSL -o "$MAMBA.tmp" "$MM_URL"; then
+        echo "ERROR: download failed for $MM_URL" >&2
+        echo "Pick a release tag from https://github.com/mamba-org/micromamba-releases/releases" >&2
+        echo "and re-run with: MICROMAMBA_VERSION=<tag> bash scripts/setup_toolchain.sh" >&2
+        exit 1
     fi
-    chmod +x "$MAMBA"
+
+    echo "==> Verifying SHA256..."
+    if [ -n "${MICROMAMBA_SHA256:-}" ]; then
+        EXPECTED_SHA="$MICROMAMBA_SHA256"
+    else
+        EXPECTED_SHA="$(curl -fsSL "$MM_URL.sha256" | awk '{print $1}')"
+    fi
+    echo "$EXPECTED_SHA  $MAMBA.tmp" | sha256sum -c -
+    chmod +x "$MAMBA.tmp"
+    mv "$MAMBA.tmp" "$MAMBA"
 fi
 "$MAMBA" --version >/dev/null
 
@@ -77,5 +102,5 @@ fi
 echo
 echo "Done. Before running sglang, in every shell do:"
 echo "    source scripts/toolchain_env.sh"
-echo "and clear any failed JIT builds once:"
-echo "    rm -rf ~/.cache/tvm-ffi"
+echo "and clear the failed JIT builds once:"
+echo "    rm -rf ~/.cache/tvm-ffi/sgl_kernel_jit_*"

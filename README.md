@@ -29,13 +29,19 @@ the RoPE kernel is JIT-only on CUDA (verified in sglang 0.5.10.post1 and
 **Fix** — install a user-space GCC 13 (conda-forge, what sglang tests
 against) and point the JIT at it via `CXX` and nvcc's `NVCC_PREPEND_FLAGS`:
 
-1. `bash scripts/setup_toolchain.sh` — one time; installs micromamba + GCC 13
-   into `./.toolchain` (~1.5 GB) and self-tests a C++20 `<version>` compile.
-2. `rm -rf ~/.cache/tvm-ffi` — one time; clears the failed build cache.
+1. `bash scripts/setup_toolchain.sh` — one time; downloads a pinned,
+   SHA256-verified micromamba and installs GCC 13 into `./.toolchain`
+   (~1.5 GB, fully repo-local via `MAMBA_ROOT_PREFIX`), then self-tests a
+   C++20 `<version>` compile (and an nvcc `-ccbin` compile if nvcc is on
+   PATH).
+2. `rm -rf ~/.cache/tvm-ffi/sgl_kernel_jit_*` — one time; clears the failed
+   JIT build dirs.
 3. `source scripts/toolchain_env.sh` — in every shell that runs sglang
-   (`scripts/demo_run.sh` now does this automatically). Sets `CC`, `CXX`,
-   `NVCC_PREPEND_FLAGS="-ccbin .../g++"` and `LD_LIBRARY_PATH` (the built
-   `.so` needs the matching newer `libstdc++.so.6` at runtime).
+   (`scripts/demo_run.sh` does this automatically). Sets `CC`, `CXX`,
+   `NVCC_CCBIN`, `NVCC_PREPEND_FLAGS="-ccbin .../g++"` (existing flags
+   preserved, idempotent on re-source) and `LD_LIBRARY_PATH` (the built
+   `.so` needs the matching newer `libstdc++.so.6` at runtime). Only the
+   current shell is affected — open a fresh shell to switch back.
 4. `uv run python3 src/jit_smoke_test.py` — compiles the exact kernel that
    crashed the server; once it prints OK, `bash scripts/demo_run.sh` works
    and the result is cached in `~/.cache/tvm-ffi`.
