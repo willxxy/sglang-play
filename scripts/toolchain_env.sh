@@ -2,17 +2,6 @@
 #     source scripts/toolchain_env.sh
 #
 # Points SGLang's runtime JIT compilation (tvm-ffi + nvcc) at the user-space
-# GCC 13 installed by scripts/setup_toolchain.sh:
-#   - CXX/CC:              used by tvm-ffi for C++ compiles and linking
-#   - NVCC_CCBIN:          default host compiler for nvcc (CUDA >= 12.8 docs)
-#   - NVCC_PREPEND_FLAGS:  injects -ccbin (works since CUDA 11.5); existing
-#                          flags are preserved, and -ccbin is not added twice
-#                          because nvcc errors on a duplicated -ccbin
-#   - LD_LIBRARY_PATH:     the JIT-built .so needs the matching newer
-#                          libstdc++.so.6 at runtime
-#
-# Safe to re-source; only affects the current shell. Open a fresh shell (or
-# just don't source this) to get back to the stock environment.
 
 _sglang_env_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 _sglang_tc="${SGLANG_TOOLCHAIN_PREFIX:-$_sglang_env_dir/.toolchain}/gcc13"

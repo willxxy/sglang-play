@@ -1,22 +1,6 @@
 #!/usr/bin/env bash
-# One-time, no-sudo setup of a modern host compiler for SGLang's JIT kernels.
-#
-# Why: sglang.jit_kernel compiles CUDA kernels at runtime with -std=c++20.
-# nvcc uses the system gcc as host compiler; on RHEL8 that is GCC 8.5, which
-# has no C++20 and no <version> header -> "fatal error: version: No such file
-# or directory". This installs GCC 13 (what sglang tests against) from
-# conda-forge into ./.toolchain — entirely in user space.
-#
-# Usage:
-#   bash scripts/setup_toolchain.sh          # one time
-#   source scripts/toolchain_env.sh          # in every shell that runs sglang
-#
-# Overrides:
-#   SGLANG_TOOLCHAIN_PREFIX  install location (default: <repo>/.toolchain)
-#   MICROMAMBA_VERSION       micromamba release tag to download
-#   MICROMAMBA_SHA256        expected sha256 of the micromamba binary; when
-#                            unset, the published .sha256 asset of the pinned
-#                            release is used
+# We have older GCC (8.5) so we need to download and override it with a different version via micromamba
+# One time usage needed only
 
 set -euo pipefail
 
