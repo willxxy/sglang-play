@@ -1,5 +1,6 @@
 # sglang-play
-Playing with SGLANG on H100 NVL GPUs
+Playing with SGLANG on H100 NVL GPUs.
+
 
 ## Installation
 1. `uv venv`
