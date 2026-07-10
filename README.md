@@ -3,23 +3,37 @@ Playing with SGLANG on H100 NVL GPUs.
 
 
 ## Installation
+
+sglang is installed **first** and is the highest-priority dependency: its
+cu129 binaries (`torch==2.11.0+cu129`, `sglang-kernel`, `sgl-deep-gemm`) are
+pinned by the steps below. Everything else lives in `requirements.txt` as
+lower bounds (`>=`), so it installs **on top** without re-resolving or
+downgrading those pins.
+
 1. `uv venv`
 2. `uv pip install --upgrade pip`
 3. `uv pip install --prerelease=allow sglang`
 4. `uv pip install --force-reinstall  torch==2.11.0 torchaudio==2.11.0 torchvision --index-url https://download.pytorch.org/whl/cu129`
 5. `uv pip install --force-reinstall sglang-kernel --index-url https://docs.sglang.ai/whl/cu129/`
 6. `uv pip install --force-reinstall sgl-deep-gemm --index-url https://docs.sglang.ai/whl/cu129/ --no-deps`
+7. `uv pip install -r requirements.txt` — the remaining project deps, installed
+   last so the sglang pins above win.
 
-7. Run this iff gcc version is old like 9.5. `bash scripts/setup_toolchain.sh` — one time; downloads a pinned,
+> On glibc-2.28 hosts (RHEL8/CentOS8) where the prebuilt wheels won't install,
+> replace steps 3–7 with `bash scripts/build_latest_sglang.sh`, which builds
+> sglang from source, re-pins the cu129 binaries, and then installs
+> `requirements.txt` on top automatically.
+
+8. Run this iff gcc version is old like 9.5. `bash scripts/setup_toolchain.sh` — one time; downloads a pinned,
    SHA256-verified micromamba and installs GCC 13 into `./.toolchain`
    (~1.5 GB, fully repo-local via `MAMBA_ROOT_PREFIX`), then self-tests a
    C++20 `<version>` compile (and an nvcc `-ccbin` compile if nvcc is on
    PATH).
-8. `rm -rf ~/.cache/tvm-ffi` — one time; clears the failed
+9. `rm -rf ~/.cache/tvm-ffi` — one time; clears the failed
    JIT build dirs.
-9. `source scripts/toolchain_env.sh` — in every shell that runs sglang
+10. `source scripts/toolchain_env.sh` — in every shell that runs sglang
    (`scripts/demo_run.sh` does this automatically).
-10. `uv run python3 src/jit_smoke_test.py` — compiles the exact kernel that
+11. `uv run python3 src/jit_smoke_test.py` — compiles the exact kernel that
    crashed the server; once it prints OK, `bash scripts/demo_run.sh` works
    and the result is cached in `~/.cache/tvm-ffi`.
 

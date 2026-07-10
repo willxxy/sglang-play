@@ -1,0 +1,34 @@
+# Extra project dependencies (from llm-augment), installed ON TOP of the
+# sglang stack — NOT instead of it.
+#
+# Everything here is a lower bound (>=), on purpose: sglang is installed and
+# cu129-pinned FIRST (README steps / scripts/build_latest_sglang.sh), so when
+# uv processes this file it finds the sglang pins (torch 2.11.0+cu129,
+# numpy, ...) already satisfy these bounds and leaves them untouched. That
+# keeps sglang "highest priority" and prevents a stock PyPI torch from
+# clobbering the CUDA build.
+#
+# Install with:  uv pip install -r requirements.txt   (after sglang is in)
+datasets>=4.4.2
+h5py>=3.15.1
+matplotlib>=3.10.8
+maturin>=1.11.5
+numpy>=2.4.0
+pandas>=2.3.3
+pytest>=9.0.2
+scikit-learn>=1.8.0
+scipy>=1.16.3
+torch>=2.9.1
+tqdm>=4.67.1
+transformers>=5.12.1
+wandb>=0.24.0
+wfdb>=4.3.0
+ninja
+packaging
+psutil
+setuptools
+wheel
+accelerate>=1.12.0
+einops>=0.8.2
+jinja2>=3.1.6
+openai>=2.26.0

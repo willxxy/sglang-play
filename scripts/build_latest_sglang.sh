@@ -83,9 +83,20 @@ uv pip install --force-reinstall "sgl-deep-gemm==0.1.3" --index-url "$CU_INDEX" 
 log "Clearing ~/.cache/tvm-ffi (flashinfer/xgrammar/transformers all changed)"
 rm -rf "$HOME/.cache/tvm-ffi"
 
+# --- 5. extra project deps (llm-augment) ---------------------------------
+# Installed LAST, on top of the pinned sglang stack. requirements.txt holds
+# only lower bounds, so uv leaves the cu129 torch / sglang-kernel / sgl-deep-gemm
+# pins from step 3 untouched (they already satisfy the bounds). sglang stays
+# highest priority; these deps go on top.
+REQ_FILE="$REPO_DIR/requirements.txt"
+if [ -f "$REQ_FILE" ]; then
+    log "Installing extra project deps from requirements.txt (sglang pins kept)"
+    uv pip install -r "$REQ_FILE"
+fi
+
 cat <<'NEXT'
 
-Done building & installing sglang 0.5.14.
+Done building & installing sglang 0.5.14 (+ requirements.txt on top).
 
 Next (the runtime JIT uses your gcc13 toolchain, NOT the system compiler above):
   bash scripts/setup_toolchain.sh          # one-time, if not already done

@@ -1,0 +1,5 @@
+# Tooling config only. Runtime dependencies live in requirements.txt so that
+# sglang (source-built + cu129-pinned) stays highest priority and is never
+# re-resolved out from under us — see requirements.txt for the rationale.
+[tool.ruff.lint]
+select = ["ALL"]
