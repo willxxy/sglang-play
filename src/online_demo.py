@@ -9,7 +9,7 @@ response = session.post(
     "http://localhost:30000/v1/chat/completions",
     json={
         "model": "qwen/qwen2.5-0.5b-instruct",
-        "messages": [{"role": "user", "content": "What is the capital of France?"}],
+        "messages": [{"role": "user", "content": "Write me a long essay"}],
     },
 )
 response.raise_for_status()

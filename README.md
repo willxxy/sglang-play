@@ -24,6 +24,9 @@ Playing with SGLANG on H100 NVL GPUs.
    and the result is cached in `~/.cache/tvm-ffi`.
 
 
+### Additional Installation Notes
+1. For some reason there is some weird behavior where I use the same installation scripts as above in another repo, as well as pathing to the .sglang-src wheel and .toolchain folder, it still uses old GCC. The re-installation from scratch works but now in my other repo, i have to run sglang serve command with export FLASHINFER_USE_CUDA_NORM=1.
+
 
 ### check_environment.py output
 
